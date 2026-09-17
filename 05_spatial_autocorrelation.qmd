@@ -196,12 +196,12 @@ Now we have to prepare our spatial test. For this we need to prepare a couple of
 - Assign spatial weights to the neighborhood matrix
 
 ```{r}
-# we define neighbors using k (the 5 closest neighbors)
+# we define neighbors using k (the closest neighbors)
 knn <- knearneigh(sr_coords, k = 1)
 
 # create the neighborhood matrix
 nb <- knn2nb(knn)
-# deine spatial weights matrix
+# define spatial weights matrix
 lw <- nb2listw(nb, style = "W", zero.policy = TRUE)
 ```
 
