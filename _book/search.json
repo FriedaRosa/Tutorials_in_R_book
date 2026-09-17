@@ -10,6 +10,46 @@
     ]
   },
   {
+    "objectID": "index.html#intended-audience",
+    "href": "index.html#intended-audience",
+    "title": "Tutorials in R (book)",
+    "section": "Intended Audience",
+    "text": "Intended Audience\nThis book is intended for:\n\nStudents learning spatial analysis in R",
+    "crumbs": [
+      "Preface"
+    ]
+  },
+  {
+    "objectID": "index.html#book-structure",
+    "href": "index.html#book-structure",
+    "title": "Tutorials in R (book)",
+    "section": "Book Structure",
+    "text": "Book Structure\nThe book is organized into the following sections:\n\nIntroduction & Background\nSimple Mapping\nDownloading biodiversity occurrence data from GBIF\nDownloading environmental geodata\nExtracting information from spatial data\nSpatial autocorrelation",
+    "crumbs": [
+      "Preface"
+    ]
+  },
+  {
+    "objectID": "index.html#how-to-use-this-book",
+    "href": "index.html#how-to-use-this-book",
+    "title": "Tutorials in R (book)",
+    "section": "How to Use This Book",
+    "text": "How to Use This Book\nCode examples are provided throughout the text. Most examples use:\n\n{sf}\n{terra}\n{tidyverse}\n{ggplot2}\n\nReaders are encouraged to reproduce the analyses on their own datasets.",
+    "crumbs": [
+      "Preface"
+    ]
+  },
+  {
+    "objectID": "index.html#license",
+    "href": "index.html#license",
+    "title": "Tutorials in R (book)",
+    "section": "License",
+    "text": "License\nUnless otherwise stated, all content is licensed under a Creative Commons Attribution (CC BY) license.",
+    "crumbs": [
+      "Preface"
+    ]
+  },
+  {
     "objectID": "00_intro.html",
     "href": "00_intro.html",
     "title": "1  Introduction to spatial ecology",
@@ -197,46 +237,6 @@
     "text": "In summary, this book has no content whatsoever.\n\n1 + 1\n\n[1] 2",
     "crumbs": [
       "<span class='chapter-number'>7</span>  <span class='chapter-title'>Summary</span>"
-    ]
-  },
-  {
-    "objectID": "index.html#intended-audience",
-    "href": "index.html#intended-audience",
-    "title": "Tutorials in R (book)",
-    "section": "Intended Audience",
-    "text": "Intended Audience\nThis book is intended for:\n\nStudents learning spatial analysis in R",
-    "crumbs": [
-      "Preface"
-    ]
-  },
-  {
-    "objectID": "index.html#book-structure",
-    "href": "index.html#book-structure",
-    "title": "Tutorials in R (book)",
-    "section": "Book Structure",
-    "text": "Book Structure\nThe book is organized into the following sections:\n\nIntroduction & Background\nSimple Mapping\nDownloading biodiversity occurrence data from GBIF\nDownloading environmental geodata\nExtracting information from spatial data\nSpatial autocorrelation",
-    "crumbs": [
-      "Preface"
-    ]
-  },
-  {
-    "objectID": "index.html#how-to-use-this-book",
-    "href": "index.html#how-to-use-this-book",
-    "title": "Tutorials in R (book)",
-    "section": "How to Use This Book",
-    "text": "How to Use This Book\nCode examples are provided throughout the text. Most examples use:\n\n{sf}\n{terra}\n{tidyverse}\n{ggplot2}\n\nReaders are encouraged to reproduce the analyses on their own datasets.",
-    "crumbs": [
-      "Preface"
-    ]
-  },
-  {
-    "objectID": "index.html#license",
-    "href": "index.html#license",
-    "title": "Tutorials in R (book)",
-    "section": "License",
-    "text": "License\nUnless otherwise stated, all content is licensed under a Creative Commons Attribution (CC BY) license.",
-    "crumbs": [
-      "Preface"
     ]
   }
 ]
