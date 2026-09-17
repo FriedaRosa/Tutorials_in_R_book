@@ -247,8 +247,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>          used (Mb) gc trigger (Mb) max used (Mb)
-Ncells  844045 45.1    1318531 70.5  1318531 70.5
-Vcells 1657478 12.7    8388608 64.0  2792775 21.4</code></pre>
+Ncells  844163 45.1    1369665 73.2  1369665 73.2
+Vcells 1657721 12.7    8388608 64.0  2792943 21.4</code></pre>
 </div>
 </div>
 <section id="section-1-libraries" class="level3" data-number="6.0.1">
@@ -518,7 +518,7 @@ Vcells 1657478 12.7    8388608 64.0  2792775 21.4</code></pre>
 </div>
 <p>Now we have to prepare our spatial test. For this we need to prepare a couple of objects: - Definition of neighbors - Build neighborhood matrix - Assign spatial weights to the neighborhood matrix</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># we define neighbors using k (the 5 closest neighbors)</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># we define neighbors using k (the closest neighbors)</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>knn <span class="ot">&lt;-</span> <span class="fu">knearneigh</span>(sr_coords, <span class="at">k =</span> <span class="dv">1</span>)</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># create the neighborhood matrix</span></span>
@@ -526,7 +526,7 @@ Vcells 1657478 12.7    8388608 64.0  2792775 21.4</code></pre>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning in knn2nb(knn): neighbour object has 45 sub-graphs</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># deine spatial weights matrix</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># define spatial weights matrix</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>lw <span class="ot">&lt;-</span> <span class="fu">nb2listw</span>(nb, <span class="at">style =</span> <span class="st">"W"</span>, <span class="at">zero.policy =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Now we can model Moran’s I which indicates spatial autocorrelation. Moran’s I &gt; 0 → nearby points have similar values Moran’s I &lt; 0 → nearby points are dissimilar Moran’s I ≈ 0 → random spatial pattern</p>
