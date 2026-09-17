@@ -1,0 +1,14 @@
+name: tutorials_in_r_book
+title: Tutorials in R (book)
+username: FriedaRosa
+account: FriedaRosa
+server: connect.posit.cloud
+hostUrl: https://api.connect.posit.cloud/v1
+appId: 01a0ae0f-5f50-fbf5-4c54-42630e4e351f
+bundleId:
+url:
+version: 1
+quarto_version: 1.8.25
+quarto_engines: markdown, knitr
+asMultiple: FALSE
+asStatic: FALSE
