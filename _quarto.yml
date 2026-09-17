@@ -2,7 +2,7 @@ project:
   type: book
 
 book:
-  title: "Tutorials_in_R_book"
+  title: "Tutorials in R (book)"
   author:
     - name: 'Friederike Wölke'
     - orcid: 0000-0001-9034-4883
