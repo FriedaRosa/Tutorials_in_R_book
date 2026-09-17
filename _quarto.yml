@@ -1,0 +1,39 @@
+project:
+  type: book
+
+book:
+  title: "Tutorials_in_R_book"
+  author:
+    - name: 'Friederike Wölke'
+    - orcid: 0000-0001-9034-4883
+    - email: 'friederike.wolke@su.se'
+  date: 2026-09-01
+  chapters:
+    - index.qmd
+    - 00_intro.qmd
+    - 01_simple_mapping.qmd
+    - 02_download_gbif_data.qmd
+    - 03_download_environmental_data.qmd
+    - 04_extract_data_from_locations.qmd
+    - 05_spatial_autocorrelation.qmd
+    - summary.qmd
+    - references.qmd
+
+toc: true
+number-sections: true
+bibliography: references.bib
+self-contained: true
+code-overflow: wrap
+
+format:
+  html:
+    theme:
+      - cosmo
+      - brand
+    smooth-scroll: true
+    html-math-method: katex
+  pdf:
+    documentclass: scrreprt
+
+
+

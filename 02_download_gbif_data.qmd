@@ -1,0 +1,552 @@
+# Download GBIF data
+
+
+```{r}
+#| label: R-garbage-collection
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+rm(list=ls())
+gc()
+```
+
+
+### Section 1: Libraries
+I wrote a function that I use in most of my projects to download and load R libraries. Usually I would save the function into it's own R-script and load it using the source() function. However, for the purporse of this tutorial it's best to see the actual function and try to understand what it does. It's generally a good idea to do that for functions that have not been written by yourself in R. While the function I wrote is useful when you work a lot in R, you can also do the same job by hand using multiple lines of code: 
+install.packages("package1"), install.packages("package2"), ..., library(package1), library(package2), and so on.
+
+```{r}
+#| label: helper-functions
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# ------------------------------------------------------------------- #
+# 1. Install packages if not already installed and load them
+# ------------------------------------------------------------------- #
+
+install_if_missing <-
+  function(packages) {
+    missing <-
+      packages[!packages %in% rownames(installed.packages())]
+
+    # first install the missing libraries
+    if (length(missing) > 0) {
+      install.packages(
+        missing,
+        repos = "https://cloud.r-project.org"
+      )
+    }
+    # now load the libraries into our active R session
+    x <- suppressPackageStartupMessages(
+      lapply(packages, require, character.only = TRUE)
+    )
+    rm(x)
+  }
+
+```
+
+```{r}
+#| label: list-libraries
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# list all packages needed for the code
+package_list <-
+  c("readr",
+    "rgbif",
+    "rnaturalearth",
+    "CoordinateCleaner",
+    "here",
+    "dplyr",
+    "ggplot2",
+    "sf",
+    "skimr",
+    "cowplot",
+    "maps",
+    "tmap"
+  )
+
+
+```
+
+
+```{r}
+#| label: install-and-load-libraries
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# run the function - may require your input in the console
+install_if_missing(package_list)
+
+# delete the list object from our r environment
+rm(package_list)
+
+```
+
+
+### Section 2: Variables
+It's good practice to collect and set up some variables that we can use in our code at the top of each script. In that way, if you want to change something, it's sufficient to do it once at the top of the script, instead of multiple times for each occurrence in the code.  Usually I do it for character strings that I am using multiple times, data paths for input reading/output saving and plotting themes or color vectors. You can save a lot of time during post-processing if you set up your code in a smart way. 
+
+
+```{r}
+#| label: set-up-variables
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+## Settings:
+sf_use_s2(TRUE) # for spherical geometry in lat/long (not planar)
+
+## Data paths:
+
+path_subproj <- here("01_simple_mapping")
+path_data <- here(path_subproj, "data")
+path_gbif_rds <- here(path_data, "gbif_occ_cleaned.rds")
+
+behrmann_wkt <- 'PROJCS["World_Behrmann",
+    GEOGCS["WGS 84",
+        DATUM["WGS_1984",
+            SPHEROID["WGS 84",6378137,298.257223563,
+                AUTHORITY["EPSG","7030"]],
+            AUTHORITY["EPSG","6326"]],
+        PRIMEM["Greenwich",0],
+        UNIT["Degree",0.0174532925199433]],
+    PROJECTION["Cylindrical_Equal_Area"],
+    PARAMETER["standard_parallel_1",30],
+    PARAMETER["central_meridian",0],
+    PARAMETER["false_easting",0],
+    PARAMETER["false_northing",0],
+    UNIT["metre",1,
+        AUTHORITY["EPSG","9001"]],
+    AXIS["Easting",EAST],
+    AXIS["Northing",NORTH],
+    AUTHORITY["ESRI","54017"]]'
+
+
+## Plotting themes:
+my_theme <- 
+  theme(
+    plot.background = element_rect(fill = "#ffffff"),
+    panel.background = element_rect(fill = "#ffffff"),
+    panel.grid = element_blank(),
+    line = element_blank(),
+    rect = element_blank())
+
+```
+
+
+
+## Download data from GBIF
+Let's check out some data on GBIF. Here we will download all occurrences of Tracheophytes (vascular plants) in Madagascar that are herbarium specimens, human observations or observations. This will likely be a big download. Feel free to reduce it further with smaller groups of organisms for testing things.
+
+
+```{r}
+#| label: GBIF-filter-vars
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+taxon_key <- name_backbone("Tracheophyta")$usageKey
+country_code <- "MG"
+basis_of_record <- c('PRESERVED_SPECIMEN', 'HUMAN OBSERVATION', 'OBSERVATION')
+```
+
+
+We use the function occ_download() to prepare big downloads in the background.
+You will be notified when the download is ready and you can access it later through your user-account via gbif.org
+The download will be a .zip folder with a .csv inside. Unzip the folder and place the .csv in your data folder.
+
+
+```{r}
+#| label: occ-download
+#| eval: false
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+occ_download(
+  pred("country", country_code),
+  pred_in("basisOfRecord", basis_of_record),
+  pred("taxonKey", taxon_key),
+  pred("hasCoordinate", TRUE),
+  pred("hasGeospatialIssue", FALSE),
+  format = "SIMPLE_CSV"
+)
+
+```
+
+```
+<<gbif download>>
+  Your download is being processed by GBIF:
+  https://www.gbif.org/occurrence/download/0016370-260903145123482
+  Most downloads finish within 15 min.
+  Check status with
+  occ_download_wait('0016370-260903145123482')
+  After it finishes, use
+  d <- occ_download_get('0016370-260903145123482') %>%
+    occ_download_import()
+  to retrieve your download.
+Download Info:
+  Username: frieda0102
+  E-mail: frieda.woelke@gmail.com
+  Format: SIMPLE_CSV
+  Download key: 0016370-260903145123482
+  Created: 2026-09-13T17:57:03.145+00:00
+Citation Info:  
+  Please always cite the download DOI when using this data.
+  https://www.gbif.org/citation-guidelines
+  DOI: 
+  Citation:
+  GBIF Occurrence Download https://www.gbif.org/occurrence/download/0016370-260903145123482 Accessed from R via rgbif (https://github.com/ropensci/rgbif) on 2026-09-13
+```
+
+You can access the status of your download with occ_download_wait() and once it's read, you can directly load it into R with occ_download_get() %>% occ_downlaod_import() (see below)
+
+```{r}
+#| label: get-occ-download
+#| eval: false
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# Check status with:
+occ_download_wait('0016370-260903145123482')
+
+# download and import
+dl <-
+  occ_download_get(
+    '0016370-260903145123482',
+    path = path_data,
+    overwrite = TRUE
+  ) %>%
+  occ_download_import()
+
+write.csv(dl, here(path_data, "gbif-dl-780k-0016370-260903145123482.csv"))
+saveRDS(dl, here(path_data, "gbif_occ_780k_raw.rds"))
+```
+
+```
+status: succeeded
+download is done, status: succeeded
+<<gbif download metadata>>
+  Status: SUCCEEDED
+  DOI: 10.15468/dl.hfmmqn
+  Format: SIMPLE_CSV
+  Download key: 0016370-260903145123482
+  Created: 2026-09-13T17:57:03.145+00:00
+  Modified: 2026-09-13T20:04:36.801+00:00
+  Download link: https://api.gbif.org/v1/occurrence/download/request/0016370-260903145123482.zip
+  Total records: 786364
+```
+
+In case it wasn't ready during the same R session - for example if you started the download with occ_download() but it took too long to finish, you can fall back to downloading the .zip manually from GBIF, extracting the .csv that is in the folder, copy+paste it into your "data" folder and read it in with the following code. We will save it as .RDS as it saves space and is faster to read back into R.
+
+```{r}
+#| label: read-dl-csv-back-in
+#| eval: false
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+dl <- 
+  readr::read_delim(
+    here(path_data, "gbif-dl-780k_0016370-260903145123482.csv"),
+    delim = "\t", escape_double = FALSE, 
+    trim_ws = TRUE)
+
+saveRDS(dl, here(path_subproj, "data", "gbif_occ_780k_raw.rds"))
+```
+
+```{r}
+#| label: read-dl-rds-back-in
+#| eval: true
+#| include: true
+#| echo: false
+#| warning: true
+#| message: true
+dl <- readRDS(here(path_subproj, "data", "gbif_occ_780k_raw.rds"))
+
+```
+
+## Pre-process the GBIF data
+
+Let's apply some first filter on our data to reduce computing time later. There is some informative metadata included in the table that we got from GBIF and we will use them to apply a first quality filter on the data. 
+
+At the same time, we will reduce the number of columns in the dataset because we do not need them all for our purpose.
+
+```{r}
+#| label: preprocess-gbif
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+dat <-
+  dl %>%
+  # select only some columns:
+  dplyr::select(
+    species,
+    decimalLongitude,
+    decimalLatitude,
+    countryCode,
+    gbifID,
+    taxonRank,
+    genus,
+    family,
+    order,
+    coordinateUncertaintyInMeters,
+    year,
+    basisOfRecord,
+    stateProvince) %>%
+  # remove entries with missing lat or lon data:
+  filter(!is.na(decimalLongitude)) %>%
+  filter(!is.na(decimalLatitude)) %>%
+  # remove entries that have not been identify at least to family level
+  filter(!is.na(family)) %>%
+  # remove coordinates that are known to have low precision
+  filter(coordinateUncertaintyInMeters <= 50000 | is.na(coordinateUncertaintyInMeters)) %>%
+  select(!coordinateUncertaintyInMeters) %>%
+  # remove duplicates in the data frame
+  distinct() %>%
+  # factors are usually faster to calculate with than charaters. We will transform some columns from character to factor:
+  mutate(
+    countryCode = as.factor(countryCode),
+    taxonRank = as.factor(taxonRank),
+    genus = as.factor(genus),
+    family = as.factor(family),
+    order = as.factor(order),
+    basisOfRecord = as.factor(basisOfRecord),
+    stateProvince = as.factor(stateProvince)
+  )
+```
+
+let's inspect the difference between the original data and our pre-processed version: 
+```{r}
+#| label: inspect-processing-gbif
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+dim(dl) # 771,230 rows and 50 columns
+dim(dat) # 770,788 rows and 12 columns
+dim(dl)-dim(dat) # we removed 442 rows and 38 columns
+
+
+# let's see which columns have lot's of NAs
+skim(dat)
+
+# and remove the unfiltered file to free up memory
+rm(dl)
+```
+
+Looks like we only have 'preserved specimen' as basisOfRecord. We can thus delete that column too.
+
+```{r}
+#| label: remove-basisofrecord-column
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+dat <- 
+  dat %>% 
+  select(!basisOfRecord)
+```
+
+We can also see that we have species names for 77.6% of entries and genus names for 97.8% of entries. ca. 2% of entries are missing a year. Since we are not going to do any temporal analyses this does not matter too much for now.
+
+### Visualize GBIF data on a map
+
+```{r}
+#| label: plot-gbif-data-raw
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+ggplot() +
+  coord_fixed() +
+  annotation_borders(
+    "world",
+    regions = "Madagascar",
+    colour = "gray50",
+    fill = "white"
+  ) +
+  geom_point(
+    data = dat,
+    aes(x = decimalLongitude, y = decimalLatitude),
+    colour = "darkred",
+    size = 0.5
+  ) +
+  my_theme
+```
+
+## Clean the coordinates
+
+We can see that there are lots of data points outside of terrestrial Madagascar. We can remove those, and other false entries using the CoordinateCleaner R package.
+
+```{r}
+#| label: coordinate-cleaner
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+dat <- 
+  data.frame(dat)
+
+# CoordinateCleaner requires ISO3 country code (3-letter)
+dat$countryCode <- "MDG"
+
+# let's flag occurrences with geographic issues next:
+# flag problems
+flags <- 
+  clean_coordinates(
+  x = dat,
+  lon = "decimalLongitude",
+  lat = "decimalLatitude",
+  countries = "countryCode",
+  species = "species",
+  tests = c(
+    "duplicates", 
+    "capitals", 
+    "centroids", 
+    # "equal", 
+    # "zeros", 
+    "countries", 
+    "institutions", 
+    "seas")
+) 
+
+summary(flags)
+```
+
+```
+Testing coordinate validity
+Flagged 0 records.
+Testing country capitals
+Flagged 4172 records.
+Testing country centroids
+Flagged 2275 records.
+Testing sea coordinates
+Reading ne_50m_land.zip from naturalearth...
+Flagged 34549 records.
+Testing country identity
+Flagged 34549 records.
+Testing biodiversity institutions
+Flagged 147 records.
+Testing duplicates
+Flagged 444426 records.
+Flagged 463576 of 770788 records, EQ = 0.6.
+
+    .val     .cap     .cen     .sea     .con    .inst     .dpl .summary 
+       0     4172     2275    34549    34549      147   444426   463576 
+
+```
+
+
+
+We dropped ca. 60% of our data entries. That's no problem because we started out with a lot to begin with.
+Let's visualize the flagged occurrences:
+
+```{r}
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+plot(flags, lon = "decimalLongitude", lat = "decimalLatitude")
+```
+
+and exclude them from our data and save the cleaned data to .rds 
+
+```{r}
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+#| label: remove-flags
+
+
+#Exclude problematic records
+dat_cl <- dat[flags$.summary, ]
+
+#The flagged records
+dat_fl <- dat[!flags$.summary, ]
+
+# save to file
+saveRDS(dat_cl, path_gbif_rds)
+```
+
+Let's look at what kind of data we just removed.
+```{r}
+skim(dat_fl)
+```
+
+```{r}
+#| eval: true
+#| include: false
+#| echo: false
+#| warning: true
+#| message: true
+dat_cl <- 
+  readRDS(path_gbif_rds)
+```
+And what kind of data we have left:
+```{r}
+# skim
+skim(dat_cl)
+```
+
+
+```{r}
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+# map the clean data
+ggplot() +
+  coord_fixed() +
+  annotation_borders(
+    "world",
+    regions = "Madagascar",
+    colour = "gray50",
+    fill = "white"
+  ) +
+  geom_point(
+    data = dat_cl,
+    aes(x = decimalLongitude, y = decimalLatitude),
+    colour = "darkred",
+    size = 0.5
+  ) +
+  my_theme
+
+```

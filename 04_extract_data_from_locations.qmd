@@ -1,0 +1,442 @@
+# Extract data from locations
+
+Make sure you have read the part about projections and CRS from the introduction page before starting.
+
+We will start our code by first ensuring that our R environment and memory is clean and empty, and then we will install and load R libraries (Section 1) and set up variables in R for file paths or frequently used objects (Section 2).
+
+```{r}
+#| label: R-garbage-collection
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+rm(list=ls())
+gc()
+```
+
+### Section 1: Libraries
+I wrote a function that I use in most of my projects to download and load R libraries. Usually I would save the function into it's own R-script and load it using the source() function. However, for the purporse of this tutorial it's best to see the actual function and try to understand what it does. It's generally a good idea to do that for functions that have not been written by yourself in R. While the function I wrote is useful when you work a lot in R, you can also do the same job by hand using multiple lines of code: 
+install.packages("package1"), install.packages("package2"), ..., library(package1), library(package2), and so on.
+
+```{r}
+#| label: helper-functions
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# ------------------------------------------------------------------- #
+# 1. Install packages if not already installed and load them
+# ------------------------------------------------------------------- #
+
+install_if_missing <-
+  function(packages) {
+    missing <-
+      packages[!packages %in% rownames(installed.packages())]
+
+    # first install the missing libraries
+    if (length(missing) > 0) {
+      install.packages(
+        missing,
+        repos = "https://cloud.r-project.org"
+      )
+    }
+    # now load the libraries into our active R session
+    x <- suppressPackageStartupMessages(
+      lapply(packages, require, character.only = TRUE)
+    )
+    rm(x)
+  }
+
+```
+
+```{r}
+#| label: list-libraries
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# list all packages needed for the code
+package_list <-
+  c(
+    "here",
+    "dplyr",
+    "ggplot2",
+    "sf",
+    "terra",
+    "tidyterra",
+    "geodata",
+    "skimr",
+    "cowplot",
+    "tmap"
+  )
+
+
+```
+
+
+```{r}
+#| label: install-and-load-libraries
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# run the function - may require your input in the console
+install_if_missing(package_list)
+
+# delete the list object from our r environment
+rm(package_list)
+
+```
+
+### Section 2: Variables
+It's good practice to collect and set up some variables that we can use in our code at the top of each script. In that way, if you want to change something, it's sufficient to do it once at the top of the script, instead of multiple times for each occurrence in the code.  Usually I do it for character strings that I am using multiple times, data paths for input reading/output saving and plotting themes or color vectors. You can save a lot of time during post-processing if you set up your code in a smart way. 
+
+
+```{r}
+#| label: set-up-variables
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+## Data paths:
+path_proj <- here("01_simple_mapping")
+path_data <- here(path_proj, "data")
+path_geodata <- here(path_data, "geodata")
+path_gbif <- here(path_data, "gbif_occ_cleaned.rds")
+path_env <- here(path_data, "env_stack_behrm.rds")
+path_adm <- here(path_geodata, "gadm/gadm41_MDG_3_pk.rds")
+
+
+## Character strings:
+wkt_behrm <- 'PROJCS["World_Behrmann",
+    GEOGCS["WGS 84",
+        DATUM["WGS_1984",
+            SPHEROID["WGS 84",6378137,298.257223563,
+                AUTHORITY["EPSG","7030"]],
+            AUTHORITY["EPSG","6326"]],
+        PRIMEM["Greenwich",0],
+        UNIT["Degree",0.0174532925199433]],
+    PROJECTION["Cylindrical_Equal_Area"],
+    PARAMETER["standard_parallel_1",30],
+    PARAMETER["central_meridian",0],
+    PARAMETER["false_easting",0],
+    PARAMETER["false_northing",0],
+    UNIT["metre",1,
+        AUTHORITY["EPSG","9001"]],
+    AXIS["Easting",EAST],
+    AXIS["Northing",NORTH],
+    AUTHORITY["ESRI","54017"]]'
+
+## Plotting themes:
+my_theme <- 
+  theme(
+    plot.background = element_rect(fill = "#ffffff"),
+    panel.background = element_rect(fill = "#ffffff"),
+    panel.grid = element_blank(),
+    line = element_blank(),
+    rect = element_blank())
+
+```
+
+
+## Extract data from grid cells
+
+In this part we will extract different types of data from our geographical data (species records and environmental variables). We can do this to any kind of spatial data. 
+Most commonly one would want to extract environmental data for certain locations (areas, grid cells, species occurrence points), or calculate some statistics on the species data over a certain area. Below are examples for both situations:
+
+### Species data (POINTS)
+
+```{r}
+# our gbif data frame from script 02
+gbif_dat <- readRDS(path_gbif)
+
+# administrative borders of Madagascar from script 01
+adm3 <- readRDS(path_adm)
+```
+
+We need to overlay a rectangular grid or administrative borders to calculate summary statistics for our gbif data across space.
+
+```{r}
+adm_sf <-
+  adm3 %>%
+  select("NAME_1", "NAME_2", "NAME_3") %>%
+  st_as_sf() %>%
+  st_transform(crs = wkt_behrm) %>%
+  mutate(
+    area_type = "adm"
+  )
+```
+
+Let's create a grid. Below our cellsize is 50,000 m x 50,000 m ()
+```{r}
+square_grid <- 
+  st_make_grid(
+    x = adm_sf,
+    what = "polygons",
+    cellsize = c(50000,50000)
+  ) %>%
+  st_sf(
+    area_type = "cell",
+    geom = .,
+    cell_id = 1:length(.)
+  )
+
+sf_use_s2(FALSE)
+
+
+grid_50 <-
+  square_grid %>%
+  st_cast("POLYGON") %>%
+  st_intersection(., adm_sf %>% select(geometry) %>% summarise()) %>%
+  distinct() %>%
+  st_make_valid()
+
+table(grid_50$area_type)
+
+plot(grid_50["cell_id"])
+```
+
+#### Extract species records per grid cells
+Merge species data and grid to the same sf object 
+- we need to add the cell_id from the grid to our species data.
+since our species data is very large, we will reduce it first for computing SR and make it big afterwards again.
+```{r}
+#| label: merge-gbif-and-grid
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+dat_sf <-
+  gbif_dat %>%
+  st_as_sf(
+    coords = c("decimalLongitude", "decimalLatitude"),
+    crs = "EPSG:4326"
+  ) %>%
+  st_transform(., crs = st_crs(grid_50))
+
+dat_grid <-
+  st_join(grid_50, dat_sf, join = st_intersects)
+
+ggplot() +
+  geom_sf(data = grid_50, fill = NA, color = "grey70") +
+  geom_sf(data = dat_sf, color = "red", size = 0.5) +
+  my_theme
+```
+
+#### Calculate species richness per grid
+
+Here is where the cell_id we assigned earlier comes in handy. We can now group our data by cell id and sum up the number of records and distinct species per cell - giving us the species richness (SR) and record numbers (N). 
+
+Since many entries in GBIF are not determined to species-level, it might make sense to also calculate genus richness or family richness. However, this of course only makes sense when working with data from more than one genus.
+
+```{r}
+#| label: calculate-SR-per-cell
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+SR <-
+  dat_grid %>%
+  st_drop_geometry() %>%
+  group_by(cell_id) %>%
+  summarise(
+    N = sum(!is.na(gbifID)),
+    SR = n_distinct(species, na.rm = TRUE)
+  ) %>%
+  mutate(
+    log_N = log(N),
+    log_SR = log(SR)
+  ) %>%
+  right_join(grid_50) %>%
+  st_as_sf()
+
+plot(SR)
+```
+
+
+#### Plot species richness 
+
+```{r}
+#| label: plot-N
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+p1 <- ggplot() +
+  geom_sf(
+    data = SR,
+    aes(fill = log_N),
+    color = NA
+  ) +
+  geom_sf(
+    data = grid_50,
+    color = "lightgrey",
+    size = 0.2,
+    fill = NA
+  ) +
+  scale_fill_distiller(
+    palette = "RdBu",
+    limit = c(1, max(SR$log_N)),
+    values = c(-1, 1),
+    na.value = "darkgrey"
+  ) +
+  my_theme +
+  labs(fill = "Species Records")
+```
+
+```{r}
+#| label: plot-SR
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+p2 <- ggplot() +
+  geom_sf(
+    data = SR,
+    aes(fill = log_SR),
+    color = NA
+  ) +
+  geom_sf(
+    data = grid_50,
+    color = "lightgrey",
+    size = 0.2,
+    fill = NA
+  ) +
+  scale_fill_distiller(
+    palette = "RdBu",
+    limit = c(1, max(SR$log_SR)),
+    values = c(-1, 1),
+    na.value = "darkgrey"
+  ) +
+  my_theme +
+  labs(fill = "Species Richness")
+```
+
+```{r}
+plot_grid(p1, p2, labels = c("A", "B"))
+```
+### Environmental data
+
+We can also extract our environmental data from the grid cells. For that we have to decide how we want to summarize the data within one grid cell to a single value. To keep it simple, let's just average them for now. 
+
+```{r}
+env_stack_behrm <-
+  readRDS(path_env)
+
+env_stack_behrm # a terra SpatRaster object 
+```
+
+We will compute our means directly on the raster stack but then convert the object into an sf-object for easier plotting and handling in general.
+
+```{r}
+#| label: read-environment-in
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+env_sf <- 
+  env_stack_behrm %>%
+  # compute mean env values per 50x50 km cell
+  terra::extract(., grid_50, fun = mean, na.rm = TRUE) %>%
+  # bind it back to gether with the cells
+  cbind(grid_50, .) %>%
+  # convert it back to sf
+  st_as_sf()
+
+# plot the gridded env data: for example elevation
+plot(env_sf["elevation"])
+
+# human footprint
+plot(env_sf["footp"])
+
+# soil organic carbon
+plot(env_sf["oc"])
+```
+##### Plot gridded environmental maps
+
+```{r}
+#| fig-height: 12
+#| fig-width: 16
+env_sf_long <- 
+  env_sf %>% 
+  pivot_longer(cols = 6:11) 
+
+env_sf_long %>%
+  ggplot()+
+  geom_sf(
+    data = env_sf_long, aes(fill = value), 
+    color = NA) +
+  geom_sf(
+    data = grid_50,
+    color = "lightgrey",
+    size = 0.2,
+    fill = NA) +
+  scale_fill_distiller(palette = "YlGnBu") +
+  facet_wrap(~ name)+
+  my_theme
+```
+
+We could now combine our gridded gbif data (species richness) with our environmental data as follows:
+
+```{r}
+env_sr_dat <- 
+  env_sf %>%
+  st_drop_geometry() %>%
+  full_join(SR)
+
+saveRDS(env_sr_dat, here(path_data, "SR_env_sf.rds"))
+```
+
+We can now use this data for ecological models. For example just like this:
+
+```{r}
+mod <- 
+  lm(SR ~ elevation + prec, 
+     data = env_sr_dat %>% st_drop_geometry, 
+     na.action = "na.exclude")
+
+summary(mod)
+```
+
+
+## Extract env data from species occurrence points
+
+```{r}
+gbif_env <- 
+  env_stack_behrm %>%
+  # compute mean env values per 50x50 km cell
+  terra::extract(., dat_sf) %>%
+  # bind it back to gether with the cells
+  cbind(dat_sf, .) %>%
+  # convert it back to sf
+  st_as_sf()
+```
+
+Now we have the environmental data for the exact coordinates of the species.
+Keep in mind that the resolution of the envronmental data is bigger than that of a single species occurrence and the same values apply for multiple occurrence records in the same area.
+
+```{r}
+
+head(gbif_env)
+saveRDS(gbif_env, here(path_data, "gbif_env_sf.rds"))
+```

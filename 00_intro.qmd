@@ -1,0 +1,438 @@
+# Introduction to spatial ecology
+
+The following book is aimed as a starting guide to get started with spatial and ecological data for statistical analyses. Most steps are kept simple for this tutorial but I've highlighted points where more advanced processing is usually necessary.
+
+::: {.callout-tip collapse="true"}
+### Useful resources
+
+- **R for Data Science (2e)** - free online
+  Book:<https://r4ds.hadley.nz/>
+
+- **Spatial Data Science in R** - free online book
+  <https://rspatial.org/spatial/2-spatialdata.html>
+
+- **Spatial Statistics for Data Science: Theory and Practices with R** -
+  free online book:
+  <https://www.paulamoraga.com/book-spatial/index.html>
+
+- **Spatial data sources and tutorials using R** - free online
+  collection: <https://rspatialdata.github.io/>
+
+- **How to Git**: <https://swcarpentry.github.io/git-novice/>
+
+- Generally, **The Carpentries Lessons**
+  <https://carpentries.org/lessons/> is a good resource for many
+  code-related things (not only in R)
+
+- **How to Quarto in RStudio**:
+  <https://rmarkdown.rstudio.com/lesson-1.html>
+
+- **Projections in R**:
+  <https://proj.org/en/stable/operations/projections/index.html>
+
+- **Projection Wizard:** <https://projectionwizard.org/>
+
+- **EPSG codes:**   <https://epsg.io/4326>
+
+- **Well-known-Text (WKT) rules** <https://docs.ogc.org/is/18-010r7/18-010r7.html>
+
+- **Available geodata R** <https://rspatial.github.io/geodata/>
+
+- **worldclim variable descriptions:** <https://www.worldclim.org/data/bioclim.html>
+
+- **Summary of biases and solutions in gridded data:** <https://ecoevorxiv.org/repository/view/12816/>
+
+:::
+
+## Background information: Spatial Data
+
+### Types of spatial phenomena
+
+> *Spatial phenomena can generally be thought of as either **discrete**
+> objects with clear boundaries or as a **continuous** phenomena that
+> can be observed everywhere, but that do not have natural boundaries.
+> Discrete spatial objects may refer to a river, road, country, town, or
+> a research site. Examples of continuous phenomena, or “spatial
+> fields”, include elevation, temperature, and air quality.*\
+> - [quote from]{.smallcaps}
+> <https://rspatial.org/spatial/2-spatialdata.html>
+
+We distinguish these ***continuous*** and ***discrete*** spatial
+phenomena using different object types (`vector`, `raster`). Both of
+these include information on the "geometry" (also referred to as "geom")
+or "shape" of the object, and additional data "attributes". The geometry
+usually represents a set of coordinates (in pairs: x,y).
+
+The most important data types are: `vector`s and `raster`s
+
+::: panel-tabset
+#### discrete variables - `vector` data
+
+- points
+
+  - the simplest case with only one coordinate-pair per point, but it
+    can have multiple associated variables ("attributes"), such as
+    environmental measurements or species presence/absence data.
+
+  - there are also multi-point classes where multiple points have been
+    combined into a structure with a single attribute record, for
+    example the places where a single species has been recorded as
+    present.
+
+- lines (or networks)
+
+  - lines (or more correctly: poly-lines) can represent single lines or
+    a connected series of line segments (e.g., a river or single
+    tributaries inside the river).
+
+  - They are represented as *ordered* set of coordinates that connect
+    points - this is also what distinguishes them from points.
+
+  - Networks contain additional information about the lines like, for
+    example, the flow, connectivity, distance, direction of a river.
+
+- polygons
+
+  - represent a set of closed poly-lines where the last coordinate pair
+    is identical with the first coordinate pair.
+
+  - Polygons can have holes (e.g., to show a lake in a terrestrial
+    landscape).
+
+  - There are some rules that make polygons valid and it's always good
+    to check the validity because spatial data is often transformed and
+    projected and combined with other data, thereby deforming the
+    spatial objects and potentially introducing issues. One of the rules
+    is that polygons must not self-intersect.
+
+  - A set of polygons can be combined to a multi-polygon, e.g., when
+    looking at the spatially disjunct distribution range of a species,
+    all polygons where the species occurs can be combined to a
+    multi-polygon with gaps between polygons.
+
+#### continuous variables - `raster` data
+
+- rasters represent continuous phenomena split up into equally-sized
+  rectangles ("grid cells"). Each cell has one or more attributes (or
+  variables) associated with it (can also be missing values).
+
+- A single cell usually represents the average (mean, median) of all
+  values inside the grid cell, but it's possible to calculate any type
+  of summary statistics during rasterization of continuous data.
+  Sometimes it's even the measured value at the centre of the cell.
+
+- raster objects do not explicitly store the geometry data as
+  coordinates. Rather, the grid is implicitly set by indicating the
+  spatial extent and number of rows and columns which divide the area.
+  Given these information, the size of each cell can be calculated.
+
+- Rasters can be interpreted as an efficient way to store polygons that
+  form a regular grid without having to save their coordinates - these
+  can be easily computed since the grid is structured. This decreases
+  computation time and memory storage of data.
+:::
+
+### R software for spatial data
+
+Originally there were two packages which have been replaced by more
+recent developed ones. The two packages were `raster` for rasters and
+`sp` for vectors. These packages are not maintained anymore. Newer (and
+better) libraries are `terra` for raster and vectors and `sf` for
+vectors. Both libraries overlap in their application but they handle
+spatial information in very different ways. While `terra` uses a rather
+complex data structure, `sf` is easier to use and works perfectly within
+the `tidyverse`, including native support for `sf` within `ggplot2`.
+
+::: panel-tabset
+#### `terra`
+
+replaces both outdated libraries: `sp` and `raster`. The extension
+library `tidyterra` enables compatibility with `tidyverse`-functions for
+handling and manipulation (including piping).
+
+- Vector data:
+
+  - Data classes: `SpatVector`
+
+  - File format: shapefile (.shp) (use `terra::vect()` to read in or
+    convert foreign objects to `SpatVector`))
+
+  - Extract data: `terra::as.data.frame(shp)`
+
+  - Extract data with coordinates:
+    `terra::as.data.frame(shp, xy = TRUE)`
+
+  - requires the library `tidyterra` to use `tidyverse` operations,
+    otherwise use base-R language.
+
+  - Modifying vectors in `terra`:
+    <https://rspatial.org/spatial/7-vectmanip.html>
+
+- Raster data:
+
+  - Data class: `SpatRaster`
+
+  - file format: GeoTIFF, ESRI, ENVI, ERDAS (use `terra::rast()` to load
+    or convert foreign objects to `raster`)
+
+  - Extract data: `terra::values(tif)`
+
+  - Extract data with cell-centroid coordinates:
+    `terra::as.data.frame(tif, xy = TRUE)`
+
+  - rasters can be "stacked" to a single data object with multiple
+    layers using: `c(raster1, raster2, raster3)`
+
+  - can easily be created from scratch (using `rast()`) with additional
+    arguments: `xmin`, `nrow`, `ncol`, and/or `crs`; or "rasterized"
+    using a template and a dataframe with coordinates using
+    `rasterize(data, template)`
+
+  - Modifying rasters in `terra`:
+    <https://rspatial.org/spatial/8-rastermanip.html#modifying-a-spatraster-object>
+
+#### `sf`
+
+`sf` replaces the outdated libraries: `sp`, `rgdal`, `rgeos` and is also
+a new way of representing geo-spatial data as "simple features".
+Features are objects in the real world (for example: an area, a
+building, an individual organism recorded in the a certain place and
+time). These features have geometries describing the location of the
+feature in the real world, and attributes associated with it (for
+examples: traits measured). It works directly with `tidyverse` functions
+for handling and manipulation. It also provides access to Google's
+spherical geometry library (`s2`) to fast and accurate computations on
+non-planar geometries. this is enabled by default for geographic
+(latitude/longitude) coordinate systems.\
+More information: <https://r.geocompx.org/spatial-class#intro-sf>
+
+- Vector data:
+
+  - Data class: `sf` and `data.frame`
+
+  - file format: shapefile (.shp) (use `st_read()` to load)
+
+  - convert foreign objects to an sf object with: `st_as_sf()`
+
+  - data can be extracted by removing the geometry column with
+    `st_drop_geometry()`
+
+#### `terra`-`sf` interactions
+
+<https://r.geocompx.org/raster-vector>
+
+It is not always easy to handle both `sf` and `terra` objects together
+but it is often necessary, for example when downloading external data.
+`terra` can use the information provided in sf objects to work with
+`raster`s, for example when extracting `raster`-values for certain
+`sf`-geometries.
+
+Similarly, `sf` can use information provided from `raster` objects to
+modify the `sf` object.
+
+- `sf::st_transform(sf, st_crs(raster))` will match the CRS of the sf to
+  the one from the raster.
+
+- `terra::crop(raster, sf)` will crop the raster to the extent of the sf
+  object
+
+- `terra::mask(raster, sf)` will set the outside values of the bounds of
+  the sf object to `NA` in the raster
+
+- `terra::extract(raster, sf, exact = TRUE)` will extract the values
+  from the raster for the points, lines, or polygons in the sf object\
+  This can be a bit slow but there is the library `extactextract` which
+  speeds things up significantly:
+  <https://github.com/isciences/exactextractr>
+
+- converting a `raster` to a `vector` (and converting it to `sf`) is
+  called "vectorization" and can be done with:\
+  `terra::as.polygons(raster) %>% sf::st_as_sf()` for polygons,\
+  `terra::as.points(raster) %>% sf::st_as_sf()` for points, or\
+  `terra::as.contour(raster) %>% sf::st_as_sf()` for lines
+:::
+
+### Coordinate Reference Systems (CRS)
+
+CRS are an essential aspect of spatial data as it indicates the
+reference point of the coordinate system used: A location of (3, 10)
+cannot be interpreted without knowledge where the point of origin (0, 0)
+is located, and knowledge about the unit of the coordinates (meters,
+feet, miles, kilometres, degrees) of the distance between the point and
+the origin. Below I explain the parameters we need to get to our CRS.
+
+#### Geographical coordinates - Spherical CRS
+
+> The earth has an **irregular spheroid-like shape**. The natural
+> coordinate reference system for geographic data is longitude/latitude.
+> This is an *angular* coordinate reference system. The latitude 𝜙 (phi)
+> of a point is the angle between the equatorial plane and the line that
+> passes through a point and the center of the Earth. Longitude
+> 𝜆 (lambda) is the angle from a reference meridian (lines of constant
+> longitude) to a meridian that passes through the point.\
+> [- quote from]{.smallcaps} <https://rspatial.org/spatial/6-crs.html>
+
+Meaning that we need to know the angles when interpreting
+latitude/longitude coordinates. Since we cannot measure these angles, we
+need to estimate them from a model of Earth's shape ("**datum**").
+Examples are:
+
+- **Spheroid datum:**
+
+  - Describes Earth as a sphere that is flattened at the poles and
+    enlarged at the equator
+
+- **WGS84 (World Geodetic System 1984)**
+
+  - Describes Earth's surface with more complexity
+
+  - Is used in GPS
+
+  - It's origin (0, 0) is at the Earth's centre of mass (\< 2 cm
+    uncertainty): slightly (102 m) east of the Greenwich meridian at the
+    equator.
+
+  - CRS: `"EPSG:4326"`
+
+- **Local datums**
+
+  - record more precisely locations for a single country or region
+
+#### Projections - Making Earth planar
+
+Geographic coordinates are a three dimensional system (latitude,
+longitude, altitude; x, y, z) but in cartography we need to transform it
+into a two dimensional plane to visualize a map. It also makes certain
+calculations calculations easier. Planar CRS are referred to as
+"**projections**".
+
+It is impossible to transform a 3D object into a 2D representation
+without introducing distortions. This means we have to make an important
+consideration before choosing a projection: Do we want to keep the
+**scale** (i.e., area) constant or the **shape** (i.e., distances) as
+they are seen on a globe? Some projections are global, others are only
+for small areas. There is no one-size-fits-all solution to all
+projections since each has it's own trade-offs. Some projections
+approximate both, equal-area and conformal shape, e.g., *UTM* for
+smaller areas and *Lambert Equal Area* for larger areas.
+
+Here are some images of projections to familiarize yourself with what it
+does: [all projection
+images](https://proj.org/en/stable/operations/projections/all_images.html)
+
+Luckily, there are useful tools that let us easily get the best
+projection for our study area and application:
+<https://projectionwizard.org/>\
+Just crop the map to the study area, chose whether you want equal-area
+or equal-distance (shape) and copy the projection string in `prj` or
+`wkt` format. Both of those can be read by R.
+
+#### Additional parameters of planar CRS
+
+A planar CRS is defined by 1) a **projection** 2) a **datum** 3)
+**parameters** based on projection. R recognizes the notation of the
+additional parameters in forms of multiple systems:
+
+- if WGS84-datum based: **PROJ.4** notation still works but is not fully
+  supported any more
+
+- **EPSG** (European Petroleum Survey Group) Codes: Unique ID to
+  identify a CRS. The ID has been assigned for most commonly used CRS.
+  For example, `WGS84` is `EPSG:4326`.\
+  <https://epsg.io/4326>
+
+- Well-Known-Text (**wtk**) : a mark-up language fore representing
+  vector geometry objects. It is the open standard format for describing
+  CRSs developed by the Open Geospatial Consortium (OGC)\
+  <https://docs.ogc.org/is/18-010r7/18-010r7.html>
+
+
+#### Projecting in R
+
+- `terra::project(vector, crs)` spatial vectors can be easily
+  transformed to another projection.
+
+- `rasters` should not be projected if it can be avoided since it would
+  involve changing the coordinates of pixels separately. Rather, there
+  is a workaround:
+
+  - Create a template `SpatRaster` with the desired geometry created via
+    `rast()`
+
+  - rasters require equal-area projections to assure the grid cells are
+    of the same size and therefore comparable to each other.
+
+- The functions `terra::crs()` and `sf::st_crs()` do not alter the CRS.
+  they simply print the one that was supplied or re-label the CRS in the
+  data object. They do not transform the data themselves.
+
+::: callout-tip
+#### Is it always necessary to project?
+
+R's ability to work with lat/lon CRSs has substantially improved
+recently with `sf` and `terra`.
+
+`sf` has now an integration with the *S2 spherical geometry engine* from
+Google and the user can chose whether they want to use S2 or GEOS via
+the function: `sf::sf_use_s2(FALSE)`. S2 is enabled by default and GEOS
+is always used for projected data and data with no CRS. Spherical CRS
+can be used with S2 enabled.
+
+Calculations on properly projected CRSs and geographic (lat/lon) CRS
+produce similarly accurate results. Using S2 can thus be used if an
+appropiate planar projection can not be found (as may be the case over
+large areas or when doing calculations based on area AND on distance).
+:::
+
+
+## Background Information: Species occurrence data
+
+We will access the **Global Biodiversity Information Facility (GBIF)**
+(<https://www.gbif.org/>) to get some species occurrence data within R.
+This makes the occurrence download reproducible and sharable with
+others.
+
+::: callout-important
+### Notes on data quality for statistical analyses
+
+Data on GBIF has multiple sources and has not been collected in a
+structured way. Therefore, the assumption for most statistical models,
+that the data captures a representative random sample of the true world,
+is not met. This is because it favors certain spatial areas and temporal
+time spans over others. This has natural causes that lie in the
+limitations of humans to collect data without these spatial and temporal
+"**biases**".
+
+Examples for such biases and possible ways to tackle them can be found
+in the review I linked earlier
+(<https://ecoevorxiv.org/repository/view/12816/>).
+:::
+
+We will keep it simple for now and only apply basic data-cleaning
+methods to improve the data quality a bit. Check out the library
+`coordinateCleaner` for more ways to remove data points with errors.
+
+### Accessing GBIF
+First we need to set up our GBIF credentials in R. Run the code below and then edit the file that opens (.Renviron).
+We need to enter the variables GBIF_USER, GBIF_PWD, GBIF_EMAIL (see example below), then save the file and restart the R session (in the menu bar on top, click 'Session' and then 'Restart R')
+
+```{r}
+#| label: edit-renviron
+#| eval: false
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+usethis::edit_r_environ()
+```
+
+Example variable enties to .Renviron:
+
+```         
+GBIF_USER="YOUR USER NAME"
+GBIF_PWD="YOUR_PASSWORD"
+GBIF_EMAIL="YOUR_EMAIL_ADDRESS"
+```
+
+Now we are set up. Let's start!

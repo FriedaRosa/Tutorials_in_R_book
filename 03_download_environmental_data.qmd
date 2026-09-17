@@ -1,0 +1,420 @@
+# Download environmental data in R
+
+Make sure you have read the part about projections and CRS from the introduction page before starting.
+
+We will start our code by first ensuring that our R environment and memory is clean and empty, and then we will install and load R libraries (Section 1) and set up variables in R for file paths or frequently used objects (Section 2).
+
+```{r}
+#| label: R-garbage-collection
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+rm(list=ls())
+gc()
+```
+
+### Section 1: Libraries
+I wrote a function that I use in most of my projects to download and load R libraries. Usually I would save the function into it's own R-script and load it using the source() function. However, for the purporse of this tutorial it's best to see the actual function and try to understand what it does. It's generally a good idea to do that for functions that have not been written by yourself in R. While the function I wrote is useful when you work a lot in R, you can also do the same job by hand using multiple lines of code: 
+install.packages("package1"), install.packages("package2"), ..., library(package1), library(package2), and so on.
+
+```{r}
+#| label: helper-functions
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# ------------------------------------------------------------------- #
+# 1. Install packages if not already installed and load them
+# ------------------------------------------------------------------- #
+
+install_if_missing <-
+  function(packages) {
+    missing <-
+      packages[!packages %in% rownames(installed.packages())]
+
+    # first install the missing libraries
+    if (length(missing) > 0) {
+      install.packages(
+        missing,
+        repos = "https://cloud.r-project.org"
+      )
+    }
+    # now load the libraries into our active R session
+    x <- suppressPackageStartupMessages(
+      lapply(packages, require, character.only = TRUE)
+    )
+    rm(x)
+  }
+
+```
+
+```{r}
+#| label: list-libraries
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# list all packages needed for the code
+package_list <-
+  c(
+    "here",
+    "dplyr",
+    "ggplot2",
+    "sf",
+    "terra",
+    "tidyterra",
+    "geodata",
+    "skimr",
+    "cowplot",
+    "tmap"
+  )
+
+
+```
+
+
+```{r}
+#| label: install-and-load-libraries
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# run the function - may require your input in the console
+install_if_missing(package_list)
+
+# delete the list object from our r environment
+rm(package_list)
+
+```
+
+### Section 2: Variables
+It's good practice to collect and set up some variables that we can use in our code at the top of each script. In that way, if you want to change something, it's sufficient to do it once at the top of the script, instead of multiple times for each occurrence in the code.  Usually I do it for character strings that I am using multiple times, data paths for input reading/output saving and plotting themes or color vectors. You can save a lot of time during post-processing if you set up your code in a smart way. 
+
+
+```{r}
+#| label: set-up-variables
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+## Data paths:
+path_proj <- here("01_simple_mapping")
+path_geodata <- here("01_simple_mapping/data/geodata/")
+
+## Character strings:
+wkt_behrm <- 'PROJCS["World_Behrmann",
+    GEOGCS["WGS 84",
+        DATUM["WGS_1984",
+            SPHEROID["WGS 84",6378137,298.257223563,
+                AUTHORITY["EPSG","7030"]],
+            AUTHORITY["EPSG","6326"]],
+        PRIMEM["Greenwich",0],
+        UNIT["Degree",0.0174532925199433]],
+    PROJECTION["Cylindrical_Equal_Area"],
+    PARAMETER["standard_parallel_1",30],
+    PARAMETER["central_meridian",0],
+    PARAMETER["false_easting",0],
+    PARAMETER["false_northing",0],
+    UNIT["metre",1,
+        AUTHORITY["EPSG","9001"]],
+    AXIS["Easting",EAST],
+    AXIS["Northing",NORTH],
+    AUTHORITY["ESRI","54017"]]'
+
+## Plotting themes:
+my_theme <- 
+  theme(
+    plot.background = element_rect(fill = "#ffffff"),
+    panel.background = element_rect(fill = "#ffffff"),
+    panel.grid = element_blank(),
+    line = element_blank(),
+    rect = element_blank())
+
+```
+
+## Downloading environmental data
+
+Let's download some environmental data. 
+1) We will download elevation 
+2) We will get a couple of soil content variables from isda
+african soil database 
+3) We will download some climate data from
+worldclim (annual temperature, annual precipitation, precipitation
+seasonality) 
+4) We will download human footprint data.
+
+```{r}
+#| label: get-env-madagascar
+#| eval: false
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+## 1. elevation (continuos variable - SpatRaster)
+geodata::elevation_30s("MDG")
+
+## 2. african soil data (continuos variable - SpatRaster)
+geodata::soil_af_isda(
+  var = c(
+    "oc", # organic carbon (g kg^-1)
+    "c.tot", # total carbon (kg^-1)
+    "clay", # clay content (%)
+    "sand", # sand content (%)
+    "silt", # silt content (%)
+    "ph.h2o", # pH in H2O
+    "bdr", # bed rock depth (cm)
+    "texture", # texture class
+    "wpg2" # stone content (%)
+  ),
+  depth = 20,
+  path = path_geodata
+)
+
+## 3. worldclim: https://www.worldclim.org/data/bioclim.html
+worldclim_country(
+  var = "bio",
+  country = "MDG",
+  res = 0.5
+)
+
+## 4. human footprint (either 1993 or 2009)
+footprint(year = 2009) # It is expressed on a scale of 0 (low) to 50 (high footprint)
+```
+
+We will match the resolution and extent of all layers. Then match the
+environmental layers to capture Madagascar with terra::crop() and
+terra::mask().
+
+```{r}
+#| label: load-vectors-madagascar
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# load the data from file (SpatVector)
+# read administrative borders:
+adm3 <-
+  readRDS(
+    here(path_geodata, "gadm", "gadm41_MDG_3_pk.rds")
+  ) %>%
+  select("NAME_1", "NAME_2", "NAME_3")
+
+```
+
+### Cropping and Masking Rasters
+
+```{r}
+#| label: load-rasters-madagascar
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# load the data from file (SpatRaster)
+
+# read elevation:
+elev <-
+  rast(
+    here(path_geodata, "elevation", "MDG_elv_msk.tif")
+  ) %>%
+  crop(., adm3) %>%
+  mask(., adm3)
+names(elev) <- "elevation"
+
+# read soil:
+soil <-
+  rast(
+    list.files(
+      here(path_geodata, "soil_af_isda"),
+      full.names = TRUE
+    )
+  ) %>%
+  crop(., adm3) %>%
+  mask(., adm3)
+
+names(soil) <- c(
+  "brd",
+  "ctot",
+  "clay",
+  "oc",
+  "ph",
+  "sand",
+  "silt",
+  "texture",
+  "stone"
+)
+
+# read climate:
+bio <-
+  rast(
+    here(path_geodata, "climate", "wc2.1_country", "MDG_wc2.1_30s_bio.tif")
+  ) %>%
+  select("wc2.1_30s_bio_1", "wc2.1_30s_bio_12", "wc2.1_30s_bio_15") %>%
+  crop(., adm3) %>%
+  mask(., adm3)
+
+climate <-
+  c(
+    bio$wc2.1_30s_bio_1, # annual temp
+    bio$wc2.1_30s_bio_15, # precipiation seasonality
+    bio$wc2.1_30s_bio_12 # annual prec
+  )
+
+names(climate) <- c("tavg", "prec_seas", "prec")
+
+# footprint
+footp <-
+  rast(
+    here(path_geodata, "landuse", "wildareas-v3-2009-human-footprint_geo.tif")
+  ) %>%
+  crop(., adm3) %>%
+  mask(., adm3)
+names(footp) <- "footp"
+```
+
+### Checks: geometries and data
+```{r}
+#| label: compare-rasters-madagascar
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+# Compare rasters regarding extent and resolution
+compareGeom(
+  elev,
+  soil,
+  climate,
+  footp,
+  res = TRUE,
+  ext = TRUE,
+  stopOnError = TRUE,
+  messages = TRUE
+)
+
+# save all to a common raster stack:
+env_stack <- c(
+  elev,
+  soil,
+  climate,
+  footp
+)
+
+# Compare CRS
+st_crs(adm3) == st_crs(env_stack)
+
+rm(elev, soil, climate, footp, bio)
+```
+
+```{r}
+# overview of raster data:
+env_stack
+glimpse(env_stack %>% na.omit())
+plot(env_stack)
+```
+
+
+Plot the variables interactively with tmap
+
+```{r}
+#| label: plot-tmap-interactively
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+tmap_mode(mode = "view")
+
+# Temperature
+tm_shape(env_stack$tavg) +
+  tm_raster(
+    col.scale = tm_scale_continuous(
+      values = "brewer.or_rd",
+      midpoint = NA,
+      n = 10
+    )
+  )
+
+# Precipitation
+tm_shape(env_stack$prec) +
+  tm_raster(
+    col.scale = tm_scale_continuous(
+      values = "brewer.rd_bu",
+      midpoint = NA,
+      n = 10
+    )
+  )
+
+# Precipitation Seasonality
+tm_shape(env_stack$prec_seas) +
+  tm_raster(
+    col.scale = tm_scale_continuous(
+      values = "brewer.rd_bu",
+      midpoint = NA,
+      n = 10
+    )
+  )
+
+# Elevation
+tm_shape(env_stack$elevation) +
+  tm_raster(
+    col.scale = tm_scale_continuous(
+      values = "brewer.br_bg",
+      midpoint = NA,
+      n = 10
+    )
+  )
+
+# Human Footprint
+tm_shape(env_stack$footp) +
+  tm_raster(
+    col.scale = tm_scale_continuous(
+      values = "viridis",
+      midpoint = NA,
+      n = 5
+    )
+  )
+
+# Soil (some examples):
+tm_shape(env_stack$ctot) +
+  tm_raster(
+    col.scale = tm_scale_continuous(
+      values = "brewer.br_bg",
+      midpoint = NA,
+      n = 10
+    )
+  )
+
+tm_shape(env_stack$oc) +
+  tm_raster(
+    col.scale = tm_scale_continuous(
+      values = "brewer.br_bg",
+      midpoint = NA,
+      n = 10
+    )
+  )
+
+tm_shape(env_stack$stone) +
+  tm_raster(
+    col.scale = tm_scale_continuous(
+      values = "brewer.br_bg",
+      midpoint = NA,
+      n = 10
+    )
+  )
+```

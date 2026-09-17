@@ -1,0 +1,422 @@
+# Spatial autocorrelation
+
+
+We will start our code by first ensuring that our R environment and memory is clean and empty, and then we will install and load R libraries (Section 1) and set up variables in R for file paths or frequently used objects (Section 2).
+
+```{r}
+#| label: R-garbage-collection
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+rm(list=ls())
+gc()
+```
+
+### Section 1: Libraries
+I wrote a function that I use in most of my projects to download and load R libraries. Usually I would save the function into it's own R-script and load it using the source() function. However, for the purporse of this tutorial it's best to see the actual function and try to understand what it does. It's generally a good idea to do that for functions that have not been written by yourself in R. While the function I wrote is useful when you work a lot in R, you can also do the same job by hand using multiple lines of code: 
+install.packages("package1"), install.packages("package2"), ..., library(package1), library(package2), and so on.
+
+```{r}
+#| label: helper-functions
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# ------------------------------------------------------------------- #
+# 1. Install packages if not already installed and load them
+# ------------------------------------------------------------------- #
+
+install_if_missing <-
+  function(packages) {
+    missing <-
+      packages[!packages %in% rownames(installed.packages())]
+
+    # first install the missing libraries
+    if (length(missing) > 0) {
+      install.packages(
+        missing,
+        repos = "https://cloud.r-project.org"
+      )
+    }
+    # now load the libraries into our active R session
+    x <- suppressPackageStartupMessages(
+      lapply(packages, require, character.only = TRUE)
+    )
+    rm(x)
+  }
+
+```
+
+```{r}
+#| label: list-libraries
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# list all packages needed for the code
+package_list <-
+  c(
+    "GGally",
+    "spdep",
+    "ncf",
+    "here",
+    "dplyr",
+    "ggplot2",
+    "sf",
+    "terra",
+    "skimr",
+    "spatialreg"
+  )
+
+```
+
+
+```{r}
+#| label: install-and-load-libraries
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+# run the function - may require your input in the console
+install_if_missing(package_list)
+
+# delete the list object from our r environment
+rm(package_list)
+
+```
+
+### Section 2: Variables
+It's good practice to collect and set up some variables that we can use in our code at the top of each script. In that way, if you want to change something, it's sufficient to do it once at the top of the script, instead of multiple times for each occurrence in the code.  Usually I do it for character strings that I am using multiple times, data paths for input reading/output saving and plotting themes or color vectors. You can save a lot of time during post-processing if you set up your code in a smart way. 
+
+
+```{r}
+#| label: set-up-variables
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+## Data paths:
+path_proj <- here("01_simple_mapping")
+path_data <- here(path_proj, "data")
+
+## Character strings:
+wkt_behrm <- 'PROJCS["World_Behrmann",
+    GEOGCS["WGS 84",
+        DATUM["WGS_1984",
+            SPHEROID["WGS 84",6378137,298.257223563,
+                AUTHORITY["EPSG","7030"]],
+            AUTHORITY["EPSG","6326"]],
+        PRIMEM["Greenwich",0],
+        UNIT["Degree",0.0174532925199433]],
+    PROJECTION["Cylindrical_Equal_Area"],
+    PARAMETER["standard_parallel_1",30],
+    PARAMETER["central_meridian",0],
+    PARAMETER["false_easting",0],
+    PARAMETER["false_northing",0],
+    UNIT["metre",1,
+        AUTHORITY["EPSG","9001"]],
+    AXIS["Easting",EAST],
+    AXIS["Northing",NORTH],
+    AUTHORITY["ESRI","54017"]]'
+
+## Plotting themes:
+my_theme <- 
+  theme(
+    plot.background = element_rect(fill = "#ffffff"),
+    panel.background = element_rect(fill = "#ffffff"),
+    panel.grid = element_blank(),
+    line = element_blank(),
+    rect = element_blank())
+
+```
+
+### Read our data
+
+```{r}
+sf_use_s2(TRUE)
+
+# point data
+sp_dat <- 
+  readRDS(here(path_data, "gbif_env_sf.rds")) %>%
+  st_transform(crs = "epsg:4326")
+
+# gridded data
+sr_dat <- 
+  readRDS(here(path_data, "SR_env_sf.rds")) %>%
+  st_as_sf()%>%
+  st_transform(crs = "epsg:4326")
+```
+
+## Moran's I: Spatial autocorrelation in the data
+First we have to extract our coordinates and then remove the geometry from the data for our Moran's I test.
+
+```{r}
+
+sr_mod_sf <- 
+  sr_dat %>%
+  select(SR, prec, elevation) %>%
+  na.omit() %>%
+  st_centroid() %>%
+  distinct()
+
+sr_coords <-
+  st_coordinates(sr_mod_sf)
+
+sr_mod_dat <- sr_mod_sf %>%
+  st_drop_geometry() %>%
+  cbind(sr_coords)
+
+skim(sr_mod_dat)
+
+```
+
+Now we have to prepare our spatial test. For this we need to prepare a couple of objects:
+- Definition of neighbors
+- Build neighborhood matrix
+- Assign spatial weights to the neighborhood matrix
+
+```{r}
+# we define neighbors using k (the 5 closest neighbors)
+knn <- knearneigh(sr_coords, k = 1)
+
+# create the neighborhood matrix
+nb <- knn2nb(knn)
+# deine spatial weights matrix
+lw <- nb2listw(nb, style = "W", zero.policy = TRUE)
+```
+
+Now we can model Moran's I which indicates spatial autocorrelation. 
+Moran's I > 0 → nearby points have similar values
+Moran's I < 0 → nearby points are dissimilar
+Moran's I ≈ 0 → random spatial pattern
+
+```{r}
+# model moran's I for some example variables:
+
+moran.test(
+  sr_mod_dat$SR,
+  lw
+)
+```
+We can see that we have a Moran's I statistic of 0.22 and a p-value of < 0.001. That means we have an almost random spatial pattern in species richness (although slightly positive: similar values closer together) and this is a satistically significant result. 
+
+```{r}
+moran.test(
+  sr_mod_dat$elevation,
+  lw
+)
+```
+Elevation is obviously also autocorrelated because mountains usually come in groups and altitude is spatially continuous although we look at it here as average per 50x50km grid cell.
+Moran's I is 0.81 and the p-value is approx. 0.
+
+```{r}
+moran.test(
+  sr_mod_dat$prec,
+  lw
+)
+
+
+
+```
+
+The same is true for precipitation (Moran's I of 0.99) and p-value of 0.
+
+
+It is obvious that these variables are spatially correlated. This is not a problem per se, but can be. We first have to see if the spatial signal translates through the model into the model residuals. For this we have to model some relationships and extract the model residuals. 
+
+## Moran's I: Spatial autocorrelation in the model residuals
+It's good practice to inspect the data visually, e.g., by looking at how the data is distributed. Many models have assumption about the data and we first have to make sure our data approaches these assumptions. There are many courses for ecological models and it would be too much of a detour to go into more detals. For now let's assume our data meets the assumptions of the model (which it certainly does not).
+```{r}
+glimpse(sr_mod_dat)
+```
+
+We will use the same model as in script 04
+```{r}
+mod <- 
+  lm(SR ~ elevation + prec, 
+     data = sr_mod_dat, 
+     na.action = "na.exclude")
+
+summary(mod)
+
+# we need the model residuals
+head(residuals(mod))
+```
+Now we create a correlogram between our dependent variable (SR) and our coordinates
+```{r}
+cor_dat <- 
+  correlog(
+    sr_mod_dat$X,
+    sr_mod_dat$Y,
+    z = sr_mod_dat$SR,
+    na.rm = TRUE,
+    latlon = TRUE, 
+    increment = 50, 
+    resamp = 10 # it is a better idea to resample 1000 times
+  )
+```
+
+Let's visualize the correlogram for Species richness.
+
+In the plot below we can see that we have a positive autocorrelation in species richness over approx. 200 km (4 x 50km). After that, it becomes random.
+
+```{r}
+# Simple base-R plot:
+plot(
+  cor_dat$correlation, 
+  type="b", 
+  pch=16, 
+  cex=1.2, 
+  lwd=1.5, 
+  ylim=c(-0.5, 1), 
+  xlab="Distance class", 
+  ylab="Moran's I", 
+  cex.lab=1.5, 
+  las=1, 
+  cex.axis=1.2, 
+  main="raw data - SR, increment = 50km")
+abline(h=0)
+```
+Now let's do the same for our model residuals.
+
+```{r}
+# Correlogram for residuals
+cor_res <- 
+  correlog(
+    sr_mod_dat$X,
+    sr_mod_dat$Y,
+    z=residuals(mod), 
+    na.rm=T, 
+    increment=50, 
+    resamp=1, 
+    latlon = TRUE)
+
+```
+
+
+Combine together: 
+Black circles are our raw data and white are our model residuals. We would want them to be close to zero over the whole distance to be able to trust our model. We can see that the spatial signal from the autocorrelation in our response variable translates into the spatial signal of autocorrelation in our model residuals. This is because our simple model does not take into account the spatial structure of our data. There are other models that do (see below).
+
+
+```{r}
+plot(
+  cor_dat$correlation, 
+  type="b", 
+  pch=16, 
+  cex=1.2, 
+  lwd=1.5, 
+  ylim=c(-0.5, 1), 
+  xlab="Distance class", 
+  ylab="Moran's I", 
+  cex.lab=1.5, 
+  las=1, 
+  cex.axis=1.2, 
+  main="Species Richness: Moran's I (raw, residuals)")
+abline(h=0)                  
+points(cor_res$correlation, pch=1, cex=1.2)
+lines(cor_res$correlation, lwd=1.5)
+```
+## Spatially-informed models
+
+We can next run an spatial autoregressive model that directly takes into account the spatial matrix of our data. 
+
+```{r}
+#| fig-height: 6
+#| fig-width: 3
+# 1. Make coordinates list.
+head(sr_coords)
+
+# Visualize
+plot(sr_coords)
+
+# A) we define neighbors using k (the closest neighbors)
+knn <- knearneigh(sr_coords, k = 1)
+
+# create the neighborhood list
+nb <- knn2nb(knn)
+summary(nb)
+
+dsts_sr <- unlist(nbdists(nb, sr_coords, longlat = TRUE))
+max(dsts_sr) # 50.41366 km max smallest distance between two neighbors
+
+
+
+# B) Define neighborhood based on distance (has more links between areas)
+nb <- dnearneigh(sr_coords, 0, max(dsts_sr),  longlat = TRUE)
+summary(nb)
+
+```
+
+
+```{r}
+#| fig-height: 6
+#| fig-width: 3
+plot(sr_coords)
+plot(nb, sr_coords, pch=20, lwd=2, add = T)
+```
+
+
+```{r}
+#| fig-height: 6
+#| fig-width: 3
+# Define spatial weights matrix
+
+lw <- nb2listw(nb, style = "W", zero.policy = TRUE)
+summary(lw, zero.policy=TRUE)
+plot(lw, sr_coords)
+
+```
+
+
+Build a spatial model: 
+```{r}
+library(spatialreg)
+
+sar_SR <-
+  spatialreg::errorsarlm(
+    mod, 
+    listw=lw, 
+    zero.policy=FALSE, 
+    na.action = na.omit) 
+summary(sar_SR)
+
+
+#Correlogram for spatial model
+cor_SAR <- 
+  correlog(
+    sr_mod_dat$X, 
+    sr_mod_dat$Y, 
+    z=residuals(sar_SR), 
+    na.rm=T,     
+    increment=0.45, 
+    resamp=10, 
+    latlon = FALSE)
+
+
+plot(cor_SAR$correlation, type="b", pch=15, cex=1.2, lwd=1.5, ylim=c(-0.5, 1), xlab="Distance class", ylab="Moran's I", cex.lab=1.5, las=1, cex.axis=1.2)
+abline(h=0) 
+```
+
+
+We have now removed the autocorrelation at the closest distance class, but otherwise not much has changed.
+```{r}
+# Plot all together
+plot(cor_dat$correlation, type="b", pch=16, cex=1.2, lwd=1.5, ylim=c(-0.5, 1), xlab="Distance class", ylab="Moran's I", cex.lab=1.5, las=1, cex.axis=1.2)
+abline(h=0)                  
+points(cor_res$correlation, pch=1, cex=1.2)
+lines(cor_res$correlation, lwd=1.5)
+points(cor_SAR$correlation, pch=15, cex=1.2)
+lines(cor_SAR$correlation, lwd=1.5)
+
+```
