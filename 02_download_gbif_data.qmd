@@ -78,10 +78,19 @@ package_list <-
 
 ```
 
+```{r}
+#| eval: true
+#| echo: false
+x <- suppressPackageStartupMessages(lapply(package_list, require, character.only = TRUE))
+rm(x)
+
+# delete the list object from our r environment
+rm(package_list)
+```
 
 ```{r}
 #| label: install-and-load-libraries
-#| eval: true
+#| eval: false
 #| include: true
 #| echo: true
 #| warning: true

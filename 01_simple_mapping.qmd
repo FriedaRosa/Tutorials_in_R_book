@@ -23,7 +23,7 @@ install.packages("package1"), install.packages("package2"), ..., library(package
 
 ```{r}
 #| label: helper-functions
-#| eval: true
+#| eval: false
 #| include: true
 #| echo: true
 #| warning: true
@@ -80,10 +80,20 @@ package_list <-
 
 ```
 
+```{r}
+#| eval: true
+#| echo: false
+x <- suppressPackageStartupMessages(lapply(package_list, require, character.only = TRUE))
+rm(x)
+
+# delete the list object from our r environment
+rm(package_list)
+```
+
 
 ```{r}
 #| label: install-and-load-libraries
-#| eval: true
+#| eval: false
 #| include: true
 #| echo: true
 #| warning: true
@@ -91,9 +101,6 @@ package_list <-
 
 # run the function - may require your input in the console
 install_if_missing(package_list)
-
-# delete the list object from our r environment
-rm(package_list)
 
 ```
 
@@ -186,6 +193,11 @@ to the sub-folder `data` and create another sub-folder named
 #| echo: true
 #| warning: true
 #| message: true
+
+
+if (!dir.exists(path_geodata)) {
+  dir.create(path_geodata, recursive = TRUE)
+}
 
 geodata_path(here(path_geodata))
 ```

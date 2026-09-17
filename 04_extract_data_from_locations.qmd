@@ -79,10 +79,19 @@ package_list <-
 
 ```
 
+```{r}
+#| eval: true
+#| echo: false
+x <- suppressPackageStartupMessages(lapply(package_list, require, character.only = TRUE))
+rm(x)
+
+# delete the list object from our r environment
+rm(package_list)
+```
 
 ```{r}
 #| label: install-and-load-libraries
-#| eval: true
+#| eval: false
 #| include: true
 #| echo: true
 #| warning: true
@@ -148,6 +157,21 @@ my_theme <-
 
 ```
 
+```{r}
+#| label: set-geodata-path
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+
+if (!dir.exists(path_geodata)) {
+  dir.create(path_geodata, recursive = TRUE)
+}
+
+geodata_path(here(path_geodata))
+```
 
 ## Extract data from grid cells
 

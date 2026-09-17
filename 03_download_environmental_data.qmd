@@ -79,10 +79,19 @@ package_list <-
 
 ```
 
+```{r}
+#| eval: true
+#| echo: false
+x <- suppressPackageStartupMessages(lapply(package_list, require, character.only = TRUE))
+rm(x)
+
+# delete the list object from our r environment
+rm(package_list)
+```
 
 ```{r}
 #| label: install-and-load-libraries
-#| eval: true
+#| eval: false
 #| include: true
 #| echo: true
 #| warning: true
@@ -111,6 +120,7 @@ It's good practice to collect and set up some variables that we can use in our c
 ## Data paths:
 path_proj <- here("01_simple_mapping")
 path_geodata <- here("01_simple_mapping/data/geodata/")
+
 
 ## Character strings:
 wkt_behrm <- 'PROJCS["World_Behrmann",
@@ -142,6 +152,24 @@ my_theme <-
     rect = element_blank())
 
 ```
+
+
+```{r}
+#| label: set-geodata-path
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: true
+#| message: true
+
+
+if (!dir.exists(path_geodata)) {
+  dir.create(path_geodata, recursive = TRUE)
+}
+
+geodata_path(here(path_geodata))
+```
+
 
 ## Downloading environmental data
 
