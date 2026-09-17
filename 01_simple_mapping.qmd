@@ -162,7 +162,7 @@ wkt_mda <- 'PROJCS["ProjWiz_Custom_Transverse_Cylindrical_Equal_Area",
 
 ## Plotting themes:
 my_theme <- 
-  theme(
+  ggplot2::theme(
     plot.background = element_rect(fill = "#ffffff"),
     panel.background = element_rect(fill = "#ffffff"),
     panel.grid = element_blank(),
