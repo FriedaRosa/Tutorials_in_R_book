@@ -62,6 +62,8 @@ install_if_missing <-
 #| warning: true
 #| message: true
 
+library(here)
+
 # list all packages needed for the code
 package_list <-
   c(
@@ -198,6 +200,7 @@ to the sub-folder `data` and create another sub-folder named
 if (!dir.exists(path_geodata)) {
   dir.create(path_geodata, recursive = TRUE)
 }
+
 
 geodata_path(here(path_geodata))
 ```
