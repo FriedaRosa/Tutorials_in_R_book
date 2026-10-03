@@ -1,9 +1,7 @@
-# Preface {.unnumbered}
+# Welcome {.unnumbered}
 
-
-# Welcome
-
-This book provides an introduction to the use of spatial biodiversity data in ecological and biogeographical research.
+This book provides an introduction to the use of spatial biodiversity
+data in ecological and biogeographical research.
 
 The objectives of this book are to:
 
@@ -20,12 +18,27 @@ This book is intended for:
 
 The book is organized into the following sections:
 
-1. Introduction & Background 
-2. Simple Mapping
-3. Downloading biodiversity occurrence data from GBIF
-4. Downloading environmental geodata
-5. Extracting information from spatial data
-6. Spatial autocorrelation
+1.  Introduction & Background
+
+2.  Simple Mapping
+
+    ![](01_simple_mapping/figs/01_simple_mapping.png)
+
+3.  Downloading and cleaning biodiversity occurrence data from GBIF
+
+    ![](01_simple_mapping/figs/02_flags.png)
+
+4.  Downloading environmental geodata
+
+    ![](01_simple_mapping/figs/03_tavg.png){width="299"}
+
+5.  Extracting information from spatial data
+
+    ![](01_simple_mapping/figs/04_SR_maps.png)
+
+6.  Spatial autocorrelation
+
+    ![](01_simple_mapping/figs/05_SAC.png)
 
 ## How to Use This Book
 
@@ -33,12 +46,13 @@ Code examples are provided throughout the text. Most examples use:
 
 - `{sf}`
 - `{terra}`
+- `{rgbif}`
 - `{tidyverse}`
 - `{ggplot2}`
 
 Readers are encouraged to reproduce the analyses on their own datasets.
 
-
 ## License
 
-Unless otherwise stated, all content is licensed under a Creative Commons Attribution (CC BY) license.
+Unless otherwise stated, all content is licensed under a Creative
+Commons Attribution (CC BY) license.

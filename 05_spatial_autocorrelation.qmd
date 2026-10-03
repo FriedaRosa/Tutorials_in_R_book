@@ -10,6 +10,8 @@ We will start our code by first ensuring that our R environment and memory is cl
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 rm(list=ls())
 gc()
@@ -26,6 +28,8 @@ install.packages("package1"), install.packages("package2"), ..., library(package
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # ------------------------------------------------------------------- #
 # 1. Install packages if not already installed and load them
@@ -59,6 +63,8 @@ install_if_missing <-
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # list all packages needed for the code
 package_list <-
@@ -80,6 +86,8 @@ package_list <-
 ```{r}
 #| eval: true
 #| echo: false
+#| code-fold: true
+
 x <- suppressPackageStartupMessages(lapply(package_list, require, character.only = TRUE))
 rm(x)
 
@@ -94,6 +102,8 @@ rm(package_list)
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # run the function - may require your input in the console
 install_if_missing(package_list)
@@ -114,6 +124,8 @@ It's good practice to collect and set up some variables that we can use in our c
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 ## Data paths:
 path_proj <- here("01_simple_mapping")
@@ -413,7 +425,7 @@ cor_SAR <-
     latlon = FALSE)
 
 
-plot(cor_SAR$correlation, type="b", pch=15, cex=1.2, lwd=1.5, ylim=c(-0.5, 1), xlab="Distance class", ylab="Moran's I", cex.lab=1.5, las=1, cex.axis=1.2)
+plot(cor_SAR$correlation, type="b", pch=15, cex=1.2, lwd=1.5, ylim=c(-0.5, 1), xlab="Distance class (in 50km steps)", ylab="Moran's I", cex.lab=1.5, las=1, cex.axis=1.2)
 abline(h=0) 
 ```
 
@@ -421,7 +433,7 @@ abline(h=0)
 We have now removed the autocorrelation at the closest distance class, but otherwise not much has changed.
 ```{r}
 # Plot all together
-plot(cor_dat$correlation, type="b", pch=16, cex=1.2, lwd=1.5, ylim=c(-0.5, 1), xlab="Distance class", ylab="Moran's I", cex.lab=1.5, las=1, cex.axis=1.2)
+plot(cor_dat$correlation, type="b", pch=16, cex=1.2, lwd=1.5, ylim=c(-0.5, 1), xlab="Distance class (in 50km steps)", ylab="Moran's I", cex.lab=1.5, las=1, cex.axis=1.2)
 abline(h=0)                  
 points(cor_res$correlation, pch=1, cex=1.2)
 lines(cor_res$correlation, lwd=1.5)
@@ -429,3 +441,16 @@ points(cor_SAR$correlation, pch=15, cex=1.2)
 lines(cor_SAR$correlation, lwd=1.5)
 
 ```
+```{r}
+
+png(filename="01_simple_mapping/figs/05_SAC.png", width = 600, height = 300)
+plot(cor_dat$correlation, type="b", pch=16, cex=1.2, lwd=1.5, ylim=c(-0.5, 1), xlab="Distance class (in 50km steps)", ylab="Moran's I", cex.lab=1.5, las=1, cex.axis=1.2)
+abline(h=0)                  
+points(cor_res$correlation, pch=1, cex=1.2)
+lines(cor_res$correlation, lwd=1.5)
+points(cor_SAR$correlation, pch=15, cex=1.2, col = "red")
+lines(cor_SAR$correlation, lwd=1.5, col = "red")
+dev.off()
+
+```
+

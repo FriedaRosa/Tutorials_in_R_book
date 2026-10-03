@@ -11,6 +11,8 @@ We will start our code by first ensuring that our R environment and memory is cl
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 rm(list=ls())
 gc()
@@ -27,6 +29,8 @@ install.packages("package1"), install.packages("package2"), ..., library(package
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # ------------------------------------------------------------------- #
 # 1. Install packages if not already installed and load them
@@ -60,6 +64,8 @@ install_if_missing <-
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # list all packages needed for the code
 package_list <-
@@ -82,6 +88,8 @@ package_list <-
 ```{r}
 #| eval: true
 #| echo: false
+#| code-fold: true
+
 x <- suppressPackageStartupMessages(lapply(package_list, require, character.only = TRUE))
 rm(x)
 
@@ -96,6 +104,8 @@ rm(package_list)
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # run the function - may require your input in the console
 install_if_missing(package_list)
@@ -116,6 +126,8 @@ It's good practice to collect and set up some variables that we can use in our c
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 ## Data paths:
 path_proj <- here("01_simple_mapping")
@@ -164,6 +176,7 @@ my_theme <-
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
 
 
 if (!dir.exists(path_geodata)) {
@@ -356,6 +369,17 @@ p2 <- ggplot() +
 
 ```{r}
 plot_grid(p1, p2, labels = c("A", "B"))
+```
+
+
+```{r}
+#| echo: false
+#| include: false
+#| eval: false
+
+png(filename = "01_simple_mapping/figs/04_SR_maps.png", width = 800, height = 500)
+plot_grid(p1, p2, labels = c("A", "B"))
+dev.off()
 ```
 ### Environmental data
 

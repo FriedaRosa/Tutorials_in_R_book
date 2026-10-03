@@ -1,6 +1,5 @@
 # Download GBIF data
 
-
 ```{r}
 #| label: R-garbage-collection
 #| eval: true
@@ -8,15 +7,25 @@
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 rm(list=ls())
 gc()
 ```
 
-
 ### Section 1: Libraries
-I wrote a function that I use in most of my projects to download and load R libraries. Usually I would save the function into it's own R-script and load it using the source() function. However, for the purporse of this tutorial it's best to see the actual function and try to understand what it does. It's generally a good idea to do that for functions that have not been written by yourself in R. While the function I wrote is useful when you work a lot in R, you can also do the same job by hand using multiple lines of code: 
-install.packages("package1"), install.packages("package2"), ..., library(package1), library(package2), and so on.
+
+I wrote a function that I use in most of my projects to download and
+load R libraries. Usually I would save the function into it's own
+R-script and load it using the source() function. However, for the
+purporse of this tutorial it's best to see the actual function and try
+to understand what it does. It's generally a good idea to do that for
+functions that have not been written by yourself in R. While the
+function I wrote is useful when you work a lot in R, you can also do the
+same job by hand using multiple lines of code:
+install.packages("package1"), install.packages("package2"), ...,
+library(package1), library(package2), and so on.
 
 ```{r}
 #| label: helper-functions
@@ -25,6 +34,8 @@ install.packages("package1"), install.packages("package2"), ..., library(package
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # ------------------------------------------------------------------- #
 # 1. Install packages if not already installed and load them
@@ -58,6 +69,8 @@ install_if_missing <-
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # list all packages needed for the code
 package_list <-
@@ -81,6 +94,8 @@ package_list <-
 ```{r}
 #| eval: true
 #| echo: false
+#| code-fold: true
+
 x <- suppressPackageStartupMessages(lapply(package_list, require, character.only = TRUE))
 rm(x)
 
@@ -95,6 +110,8 @@ rm(package_list)
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # run the function - may require your input in the console
 install_if_missing(package_list)
@@ -104,10 +121,16 @@ rm(package_list)
 
 ```
 
-
 ### Section 2: Variables
-It's good practice to collect and set up some variables that we can use in our code at the top of each script. In that way, if you want to change something, it's sufficient to do it once at the top of the script, instead of multiple times for each occurrence in the code.  Usually I do it for character strings that I am using multiple times, data paths for input reading/output saving and plotting themes or color vectors. You can save a lot of time during post-processing if you set up your code in a smart way. 
 
+It's good practice to collect and set up some variables that we can use
+in our code at the top of each script. In that way, if you want to
+change something, it's sufficient to do it once at the top of the
+script, instead of multiple times for each occurrence in the code.
+Usually I do it for character strings that I am using multiple times,
+data paths for input reading/output saving and plotting themes or color
+vectors. You can save a lot of time during post-processing if you set up
+your code in a smart way.
 
 ```{r}
 #| label: set-up-variables
@@ -116,6 +139,8 @@ It's good practice to collect and set up some variables that we can use in our c
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 ## Settings:
 sf_use_s2(TRUE) # for spherical geometry in lat/long (not planar)
@@ -157,11 +182,13 @@ my_theme <-
 
 ```
 
-
-
 ## Download data from GBIF
-Let's check out some data on GBIF. Here we will download all occurrences of Tracheophytes (vascular plants) in Madagascar that are herbarium specimens, human observations or observations. This will likely be a big download. Feel free to reduce it further with smaller groups of organisms for testing things.
 
+Let's check out some data on GBIF. Here we will download all occurrences
+of Tracheophytes (vascular plants) in Madagascar that are herbarium
+specimens, human observations or observations. This will likely be a big
+download. Feel free to reduce it further with smaller groups of
+organisms for testing things.
 
 ```{r}
 #| label: GBIF-filter-vars
@@ -176,11 +203,11 @@ country_code <- "MG"
 basis_of_record <- c('PRESERVED_SPECIMEN', 'HUMAN OBSERVATION', 'OBSERVATION')
 ```
 
-
-We use the function occ_download() to prepare big downloads in the background.
-You will be notified when the download is ready and you can access it later through your user-account via gbif.org
-The download will be a .zip folder with a .csv inside. Unzip the folder and place the .csv in your data folder.
-
+We use the function occ_download() to prepare big downloads in the
+background. You will be notified when the download is ready and you can
+access it later through your user-account via gbif.org The download will
+be a .zip folder with a .csv inside. Unzip the folder and place the .csv
+in your data folder.
 
 ```{r}
 #| label: occ-download
@@ -201,7 +228,7 @@ occ_download(
 
 ```
 
-```
+```         
 <<gbif download>>
   Your download is being processed by GBIF:
   https://www.gbif.org/occurrence/download/0016370-260903145123482
@@ -226,7 +253,9 @@ Citation Info:
   GBIF Occurrence Download https://www.gbif.org/occurrence/download/0016370-260903145123482 Accessed from R via rgbif (https://github.com/ropensci/rgbif) on 2026-09-13
 ```
 
-You can access the status of your download with occ_download_wait() and once it's read, you can directly load it into R with occ_download_get() %>% occ_downlaod_import() (see below)
+You can access the status of your download with occ_download_wait() and
+once it's read, you can directly load it into R with occ_download_get()
+%\>% occ_downlaod_import() (see below)
 
 ```{r}
 #| label: get-occ-download
@@ -252,7 +281,7 @@ write.csv(dl, here(path_data, "gbif-dl-780k-0016370-260903145123482.csv"))
 saveRDS(dl, here(path_data, "gbif_occ_780k_raw.rds"))
 ```
 
-```
+```         
 status: succeeded
 download is done, status: succeeded
 <<gbif download metadata>>
@@ -266,7 +295,12 @@ download is done, status: succeeded
   Total records: 786364
 ```
 
-In case it wasn't ready during the same R session - for example if you started the download with occ_download() but it took too long to finish, you can fall back to downloading the .zip manually from GBIF, extracting the .csv that is in the folder, copy+paste it into your "data" folder and read it in with the following code. We will save it as .RDS as it saves space and is faster to read back into R.
+In case it wasn't ready during the same R session - for example if you
+started the download with occ_download() but it took too long to finish,
+you can fall back to downloading the .zip manually from GBIF, extracting
+the .csv that is in the folder, copy+paste it into your "data" folder
+and read it in with the following code. We will save it as .RDS as it
+saves space and is faster to read back into R.
 
 ```{r}
 #| label: read-dl-csv-back-in
@@ -298,9 +332,13 @@ dl <- readRDS(here(path_subproj, "data", "gbif_occ_780k_raw.rds"))
 
 ## Pre-process the GBIF data
 
-Let's apply some first filter on our data to reduce computing time later. There is some informative metadata included in the table that we got from GBIF and we will use them to apply a first quality filter on the data. 
+Let's apply some first filter on our data to reduce computing time
+later. There is some informative metadata included in the table that we
+got from GBIF and we will use them to apply a first quality filter on
+the data.
 
-At the same time, we will reduce the number of columns in the dataset because we do not need them all for our purpose.
+At the same time, we will reduce the number of columns in the dataset
+because we do not need them all for our purpose.
 
 ```{r}
 #| label: preprocess-gbif
@@ -349,7 +387,9 @@ dat <-
   )
 ```
 
-let's inspect the difference between the original data and our pre-processed version: 
+let's inspect the difference between the original data and our
+pre-processed version:
+
 ```{r}
 #| label: inspect-processing-gbif
 #| eval: true
@@ -370,7 +410,8 @@ skim(dat)
 rm(dl)
 ```
 
-Looks like we only have 'preserved specimen' as basisOfRecord. We can thus delete that column too.
+Looks like we only have 'preserved specimen' as basisOfRecord. We can
+thus delete that column too.
 
 ```{r}
 #| label: remove-basisofrecord-column
@@ -385,7 +426,10 @@ dat <-
   select(!basisOfRecord)
 ```
 
-We can also see that we have species names for 77.6% of entries and genus names for 97.8% of entries. ca. 2% of entries are missing a year. Since we are not going to do any temporal analyses this does not matter too much for now.
+We can also see that we have species names for 77.6% of entries and
+genus names for 97.8% of entries. ca. 2% of entries are missing a year.
+Since we are not going to do any temporal analyses this does not matter
+too much for now.
 
 ### Visualize GBIF data on a map
 
@@ -416,7 +460,9 @@ ggplot() +
 
 ## Clean the coordinates
 
-We can see that there are lots of data points outside of terrestrial Madagascar. We can remove those, and other false entries using the CoordinateCleaner R package.
+We can see that there are lots of data points outside of terrestrial
+Madagascar. We can remove those, and other false entries using the
+CoordinateCleaner R package.
 
 ```{r}
 #| label: coordinate-cleaner
@@ -455,45 +501,31 @@ flags <-
 summary(flags)
 ```
 
-```
-Testing coordinate validity
-Flagged 0 records.
-Testing country capitals
-Flagged 4172 records.
-Testing country centroids
-Flagged 2275 records.
-Testing sea coordinates
-Reading ne_50m_land.zip from naturalearth...
-Flagged 34549 records.
-Testing country identity
-Flagged 34549 records.
-Testing biodiversity institutions
-Flagged 147 records.
-Testing duplicates
-Flagged 444426 records.
-Flagged 463576 of 770788 records, EQ = 0.6.
-
-    .val     .cap     .cen     .sea     .con    .inst     .dpl .summary 
-       0     4172     2275    34549    34549      147   444426   463576 
-
-```
-
-
-
-We dropped ca. 60% of our data entries. That's no problem because we started out with a lot to begin with.
-Let's visualize the flagged occurrences:
+We dropped ca. 60% of our data entries. That's no problem because we
+started out with a lot to begin with. Let's visualize the flagged
+occurrences:
 
 ```{r}
 #| eval: true
 #| include: true
 #| echo: true
-#| warning: true
-#| message: true
+#| warning: false
+#| message: false
 
-plot(flags, lon = "decimalLongitude", lat = "decimalLatitude")
+pf <- plot(flags, lon = "decimalLongitude", lat = "decimalLatitude")
+pf
 ```
 
-and exclude them from our data and save the cleaned data to .rds 
+```{r}
+#| echo: false
+#| include: false
+#| eval: false
+png(filename="01_simple_mapping/figs/02_flags.png", width = 800, height = 500)
+pf
+dev.off()
+```
+
+and exclude them from our data and save the cleaned data to .rds
 
 ```{r}
 #| eval: true
@@ -515,6 +547,7 @@ saveRDS(dat_cl, path_gbif_rds)
 ```
 
 Let's look at what kind of data we just removed.
+
 ```{r}
 skim(dat_fl)
 ```
@@ -528,12 +561,13 @@ skim(dat_fl)
 dat_cl <- 
   readRDS(path_gbif_rds)
 ```
+
 And what kind of data we have left:
+
 ```{r}
 # skim
 skim(dat_cl)
 ```
-
 
 ```{r}
 #| eval: true

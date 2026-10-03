@@ -5,8 +5,8 @@ book:
   title: "Tutorials in R (book)"
   author:
     - name: 'Friederike Wölke'
-    - orcid: 0000-0001-9034-4883
-    - email: 'friederike.wolke@su.se'
+      orcid: 0000-0001-9034-4883
+      email: 'friederike.wolke@su.se'
   date: 2026-09-01
   chapters:
     - index.qmd
@@ -31,8 +31,6 @@ format:
       - brand
     smooth-scroll: true
     html-math-method: katex
+    code-fold: show
   pdf:
     documentclass: scrreprt
-
-
-

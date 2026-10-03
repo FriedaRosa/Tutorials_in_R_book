@@ -11,6 +11,8 @@ We will start our code by first ensuring that our R environment and memory is cl
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 rm(list=ls())
 gc()
@@ -27,6 +29,8 @@ install.packages("package1"), install.packages("package2"), ..., library(package
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # ------------------------------------------------------------------- #
 # 1. Install packages if not already installed and load them
@@ -60,6 +64,8 @@ install_if_missing <-
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # list all packages needed for the code
 package_list <-
@@ -82,6 +88,8 @@ package_list <-
 ```{r}
 #| eval: true
 #| echo: false
+#| code-fold: true
+
 x <- suppressPackageStartupMessages(lapply(package_list, require, character.only = TRUE))
 rm(x)
 
@@ -96,6 +104,8 @@ rm(package_list)
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 # run the function - may require your input in the console
 install_if_missing(package_list)
@@ -116,6 +126,8 @@ It's good practice to collect and set up some variables that we can use in our c
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
+
 
 ## Data paths:
 path_proj <- here("01_simple_mapping")
@@ -161,6 +173,7 @@ my_theme <-
 #| echo: true
 #| warning: true
 #| message: true
+#| code-fold: true
 
 
 if (!dir.exists(path_geodata)) {
@@ -352,7 +365,7 @@ rm(elev, soil, climate, footp, bio)
 ```{r}
 # overview of raster data:
 env_stack
-glimpse(env_stack %>% na.omit())
+glimpse(env_stack)
 plot(env_stack)
 ```
 
@@ -446,3 +459,24 @@ tm_shape(env_stack$stone) +
     )
   )
 ```
+```{r}
+#| echo: false
+#| include: false
+#| eval: false
+#| fig-show: hold
+png(filename="01_simple_mapping/figs/03_tavg.png", width = 400, height = 600)
+tmap_mode(mode = "plot")
+
+# Temperature
+tm_shape(env_stack$tavg) +
+  tm_raster(
+    col.scale = tm_scale_continuous(
+      values = "brewer.or_rd",
+      midpoint = NA,
+      n = 10
+    )
+  )
+
+dev.off()
+```
+
